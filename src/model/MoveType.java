@@ -1,0 +1,5 @@
+package model;
+
+public enum MoveType {
+    NORMAL, KING, PAWN_DOUBLE, ILLEGAL, EN_PASSANT, SHORT_CASTLING, LONG_CASTLING, PROMOTION
+}
