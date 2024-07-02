@@ -133,8 +133,10 @@ public class ChessGamePanel extends JPanel {
                         logic.move(new Move(new Position(adjustCoordinate(draggedSquare.getFile()), adjustCoordinate(draggedSquare.getRank())), new Position(adjustCoordinate(destinationSquare.getFile()), adjustCoordinate(destinationSquare.getRank()))), null);
                     if (moveType!=MoveType.ILLEGAL){
                         updateList();
-                        //logic.moveForEngine();
-                        //updateList();
+                        if (moveType!=MoveType.ILLEGAL && logic.getGameState()==GameState.IN_PROGRESS && logic.getGameMode()==GameMode.ENGINE){
+                            logic.moveForEngine();
+                            updateList();
+                        }
                     }
                     draggedSquare.setLocation(draggedSquare.getFile() * GuiConstants.SQUARE_SIZE, draggedSquare.getRank() * GuiConstants.SQUARE_SIZE);
                     if (logic.getGameState() != GameState.IN_PROGRESS) {
@@ -179,6 +181,25 @@ public class ChessGamePanel extends JPanel {
 
     public void reset() {
         logic = new Logic();
+        draggedSquare = null;
+        legalSquares = new ArrayList<>();
+        selectedPromotion = null;
+        for (int rank = 0; rank < ModelConstants.BOARD_SIZE; ++rank) {
+            for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
+                squares[rank][file].updateSquare(logic.getBoard().getPiece(new Position(adjustCoordinate(file), adjustCoordinate(rank))),logic.isInCheck(),logic.getTurn());
+                squares[rank][file].removeMouseListener(chessMouseListener);
+                squares[rank][file].removeMouseMotionListener(chessMouseMotionListener);
+                squares[rank][file].addMouseListener(chessMouseListener);
+                squares[rank][file].addMouseMotionListener(chessMouseMotionListener);
+            }
+        }
+        listModel.removeAllElements();
+        revalidate();
+        repaint();
+    }
+
+    public void reset(int skillLevel) {
+        logic = new Logic(skillLevel);
         draggedSquare = null;
         legalSquares = new ArrayList<>();
         selectedPromotion = null;
@@ -245,7 +266,7 @@ public class ChessGamePanel extends JPanel {
     }
 
     public void updateList() {
-        if (logic.getTurn()==PlayerEnum.BLACK)
+        if (logic.getTurn()==PlayerEnum.BLACK ||listModel.getSize()<=0)
             listModel.addElement(logic.getFullmoveNumber()+". "+logic.getLastMove());
         else {
             int lastIndex=listModel.getSize()-1;

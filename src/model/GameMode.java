@@ -1,5 +1,5 @@
 package model;
 
 public enum GameMode {
-    SELF,ENGINE,MULTI;
+    OFFLINE,ONLINE,ENGINE;
 }

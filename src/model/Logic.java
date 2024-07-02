@@ -17,6 +17,7 @@ public class Logic {
     private final ArrayList<String> gamePositions;
     private final ArrayList<String> moves=new ArrayList<>();
     private final EngineConnector engineConnector=new EngineConnector();
+    private GameMode gameMode;
 
     public Logic() {
         board = new Board();
@@ -32,7 +33,14 @@ public class Logic {
         gamePositions=new ArrayList<>();
         gamePositions.add(getModifiedFEN());
         moves.clear();
+        gameMode=GameMode.OFFLINE;
+    }
+
+    public Logic(int skillLevel) {
+        this();
+        gameMode=GameMode.ENGINE;
         engineConnector.sendCommand("uci");
+        engineConnector.sendCommand("setoption name Skill Level value "+skillLevel);
     }
 
     public Logic(String fen) throws InvalidFenException {
@@ -102,7 +110,7 @@ public class Logic {
             isInCheck = (isInCheck(turn == PlayerEnum.BLACK ? blackKingPos : whiteKingPos, board, turn==PlayerEnum.WHITE?PlayerEnum.BLACK:PlayerEnum.WHITE));
             isCheckmate=isInCheck&&!isThereAnyLegalMove();
             updateGameState();
-            engineConnector.sendCommand("uci");
+            gameMode=GameMode.OFFLINE;
     }
 
     private void checkIfNullAndSetHasMovedToFalse(Piece piece) {
@@ -683,4 +691,6 @@ public class Logic {
     public int getFullmoveNumber() {
         return fullmoveNumber;
     }
+
+    public GameMode getGameMode() {return gameMode;}
 }

@@ -1,7 +1,5 @@
 package model;
 
-import gui.GuiConstants;
-
 import java.io.*;
 
 public class EngineConnector {
@@ -17,6 +15,7 @@ public class EngineConnector {
         }
         catch (Exception e){
             System.err.println("Could not connect the engine.");
+            e.printStackTrace();
         }
     }
 

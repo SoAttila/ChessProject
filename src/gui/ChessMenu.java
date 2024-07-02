@@ -13,6 +13,19 @@ public class ChessMenu extends JMenu {
             }
         });
         add(newGame);
+        JMenuItem newGameAgainstEngine=new JMenuItem(new AbstractAction("Play against Stockfish") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    int skillLevel = Integer.valueOf(JOptionPane.showInputDialog(gamePanel, "Stockfish Skill Level (0-20): "));
+                    gamePanel.reset(skillLevel);
+                }
+                catch (NumberFormatException ex){
+                    System.err.println("Invalid integer input!");
+                }
+            }
+        });
+        add(newGameAgainstEngine);
         JMenuItem loadFEN=new JMenuItem(new AbstractAction("Load FEN") {
             @Override
             public void actionPerformed(ActionEvent e) {
