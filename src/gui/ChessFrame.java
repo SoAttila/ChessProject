@@ -17,13 +17,13 @@ public class ChessFrame extends JFrame {
         setLayout(new BorderLayout());
         setMinimumSize(new Dimension(GuiConstants.FRAME_LENGTH, GuiConstants.FRAME_LENGTH));
         setResizable(false);
-        moveNotationPanel=new MoveNotationPanel();
-        gamePanel = new ChessGamePanel(new Logic(),moveNotationPanel.getListModel());
+        moveNotationPanel = new MoveNotationPanel();
+        gamePanel = new ChessGamePanel(new Logic(), moveNotationPanel.getListModel());
         getContentPane().add(gamePanel, BorderLayout.CENTER);
-        getContentPane().add(moveNotationPanel,BorderLayout.EAST);
-        menuBar=new JMenuBar();
-        add(menuBar,BorderLayout.NORTH);
-        menu=new ChessMenu(gamePanel);
+        getContentPane().add(moveNotationPanel, BorderLayout.EAST);
+        menuBar = new JMenuBar();
+        add(menuBar, BorderLayout.NORTH);
+        menu = new ChessMenu(gamePanel);
         menuBar.add(menu);
 
         revalidate();

@@ -2,49 +2,53 @@ package gui;
 
 import model.*;
 
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
+import java.io.File;
 import java.util.ArrayList;
 
 public class ChessGamePanel extends JPanel {
-    private final ChessMouseListener chessMouseListener=new ChessMouseListener();
-    private final ChessMouseMotionListener chessMouseMotionListener=new ChessMouseMotionListener();
-    private Logic logic;
+    private final ChessMouseListener chessMouseListener = new ChessMouseListener();
+    private final ChessMouseMotionListener chessMouseMotionListener = new ChessMouseMotionListener();
     private final ChessSquare[][] squares;
-    private ArrayList<ChessSquare> legalSquares;
     private final PromotionPanel promotionPanel;
-    private ChessSquare draggedSquare;
-    private PieceType selectedPromotion;
-    private boolean isBoardFlipped;
     private final DefaultListModel<String> listModel;
     private final NotationLabel[] fileNotationLabels;
     private final NotationLabel[] rankNotationLabels;
-    private GameMode gameMode;
-    private ChessGamePanel gamePanel;
+    private final GameMode gameMode;
+    private final ChessGamePanel gamePanel;
+    private Logic logic;
+    private ArrayList<ChessSquare> legalSquares;
+    private ChessSquare draggedSquare;
+    private PieceType selectedPromotion;
+    private boolean isBoardFlipped;
 
-    public ChessGamePanel(Logic logic,DefaultListModel<String> listModel) {
+    public ChessGamePanel(Logic logic, DefaultListModel<String> listModel) {
         this.logic = logic;
-        this.listModel=listModel;
+        this.listModel = listModel;
         squares = new ChessSquare[ModelConstants.BOARD_SIZE][ModelConstants.BOARD_SIZE];
         draggedSquare = null;
         legalSquares = new ArrayList<>();
         promotionPanel = new PromotionPanel();
         selectedPromotion = null;
-        isBoardFlipped=false;
-        fileNotationLabels=new NotationLabel[ModelConstants.BOARD_SIZE];
-        rankNotationLabels=new NotationLabel[ModelConstants.BOARD_SIZE];
-        gameMode=GameMode.ENGINE;
-        gamePanel=this;
+        isBoardFlipped = false;
+        fileNotationLabels = new NotationLabel[ModelConstants.BOARD_SIZE];
+        rankNotationLabels = new NotationLabel[ModelConstants.BOARD_SIZE];
+        gameMode = GameMode.ENGINE;
+        gamePanel = this;
         FlowLayout layout = new FlowLayout();
         layout.setHgap(0);
         layout.setVgap(0);
         setLayout(layout);
 
         for (int rank = 0; rank < ModelConstants.BOARD_SIZE; ++rank) {
-            rankNotationLabels[rank]=new NotationLabel((char)(ModelConstants.BOARD_SIZE-rank+'0'));
+            rankNotationLabels[rank] = new NotationLabel((char) (ModelConstants.BOARD_SIZE - rank + '0'));
             add(rankNotationLabels[rank]);
             for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
                 squares[rank][file] = new ChessSquare(logic.getBoard().getPiece(new Position(file, rank)), rank, file);
@@ -54,8 +58,8 @@ public class ChessGamePanel extends JPanel {
             }
         }
         add(new NotationLabel(' '));
-        for (int file=0;file< ModelConstants.BOARD_SIZE;++file) {
-            fileNotationLabels[file]=new NotationLabel((char)('a'+file));
+        for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
+            fileNotationLabels[file] = new NotationLabel((char) ('a' + file));
             add(fileNotationLabels[file]);
         }
         for (int i = 0; i < ModelConstants.POSSIBLE_PROMOTIONS; ++i) {
@@ -74,27 +78,149 @@ public class ChessGamePanel extends JPanel {
 
         for (int rank = 0; rank < ModelConstants.BOARD_SIZE; ++rank) {
             for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
-                graphics2D.setPaint((rank + file) % 2 == (isBoardFlipped?1:0) ? Color.WHITE : Color.GRAY);
-                graphics2D.fillRect((rank+1) * GuiConstants.SQUARE_SIZE, file * GuiConstants.SQUARE_SIZE, GuiConstants.SQUARE_SIZE, GuiConstants.SQUARE_SIZE);
+                graphics2D.setPaint((rank + file) % 2 == (isBoardFlipped ? 1 : 0) ? Color.WHITE : Color.GRAY);
+                graphics2D.fillRect((rank + 1) * GuiConstants.SQUARE_SIZE, file * GuiConstants.SQUARE_SIZE, GuiConstants.SQUARE_SIZE, GuiConstants.SQUARE_SIZE);
                 squares[rank][file].updateSquare(logic.getBoard().getPiece(new Position(adjustCoordinate(file), adjustCoordinate(rank))), logic.isInCheck(), logic.getTurn());
             }
         }
 
         for (ChessSquare square : legalSquares) {
-            graphics2D.setPaint((square.getFile() + square.getRank()) % 2 == (isBoardFlipped?1:0) ? GuiConstants.LIGHT_RED : GuiConstants.DARK_RED);
-            graphics2D.fillRect((adjustCoordinate(square.getFile())+1) * GuiConstants.SQUARE_SIZE, adjustCoordinate(square.getRank()) * GuiConstants.SQUARE_SIZE, GuiConstants.SQUARE_SIZE, GuiConstants.SQUARE_SIZE);
+            graphics2D.setPaint((square.getFile() + square.getRank()) % 2 == (isBoardFlipped ? 1 : 0) ? GuiConstants.LIGHT_RED : GuiConstants.DARK_RED);
+            graphics2D.fillRect((adjustCoordinate(square.getFile()) + 1) * GuiConstants.SQUARE_SIZE, adjustCoordinate(square.getRank()) * GuiConstants.SQUARE_SIZE, GuiConstants.SQUARE_SIZE, GuiConstants.SQUARE_SIZE);
         }
 
         Toolkit.getDefaultToolkit().sync();
         if (draggedSquare == null) revalidate();
     }
 
+    public void reset() {
+        logic = new Logic();
+        draggedSquare = null;
+        legalSquares = new ArrayList<>();
+        selectedPromotion = null;
+        if (isBoardFlipped)
+            flipBoard();
+        for (int rank = 0; rank < ModelConstants.BOARD_SIZE; ++rank) {
+            for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
+                squares[rank][file].updateSquare(logic.getBoard().getPiece(new Position(adjustCoordinate(file), adjustCoordinate(rank))), logic.isInCheck(), logic.getTurn());
+                squares[rank][file].removeMouseListener(chessMouseListener);
+                squares[rank][file].removeMouseMotionListener(chessMouseMotionListener);
+                squares[rank][file].addMouseListener(chessMouseListener);
+                squares[rank][file].addMouseMotionListener(chessMouseMotionListener);
+            }
+        }
+        listModel.removeAllElements();
+        revalidate();
+        repaint();
+    }
+
+    public void reset(int skillLevel) {
+        logic = new Logic(skillLevel);
+        draggedSquare = null;
+        legalSquares = new ArrayList<>();
+        selectedPromotion = null;
+        if (isBoardFlipped)
+            flipBoard();
+        for (int rank = 0; rank < ModelConstants.BOARD_SIZE; ++rank) {
+            for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
+                squares[rank][file].updateSquare(logic.getBoard().getPiece(new Position(adjustCoordinate(file), adjustCoordinate(rank))), logic.isInCheck(), logic.getTurn());
+                squares[rank][file].removeMouseListener(chessMouseListener);
+                squares[rank][file].removeMouseMotionListener(chessMouseMotionListener);
+                squares[rank][file].addMouseListener(chessMouseListener);
+                squares[rank][file].addMouseMotionListener(chessMouseMotionListener);
+            }
+        }
+        listModel.removeAllElements();
+        revalidate();
+        repaint();
+    }
+
+    public void loadFEN(String fen) {
+        try {
+            logic = new Logic(fen);
+            draggedSquare = null;
+            legalSquares = new ArrayList<>();
+            selectedPromotion = null;
+            if (isBoardFlipped)
+                flipBoard();
+            for (int rank = 0; rank < ModelConstants.BOARD_SIZE; ++rank) {
+                for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
+                    squares[rank][file].updateSquare(logic.getBoard().getPiece(new Position(file, rank)), logic.isInCheck(), logic.getTurn());
+                    squares[rank][file].removeMouseListener(chessMouseListener);
+                    squares[rank][file].removeMouseMotionListener(chessMouseMotionListener);
+                    squares[rank][file].addMouseListener(chessMouseListener);
+                    squares[rank][file].addMouseMotionListener(chessMouseMotionListener);
+                }
+            }
+            listModel.removeAllElements();
+            revalidate();
+            repaint();
+        } catch (InvalidFenException ife) {
+            //TBD
+        }
+    }
+
+    public int adjustCoordinate(int coordinate) {
+        if (isBoardFlipped)
+            return ModelConstants.BOARD_SIZE - 1 - coordinate;
+        else
+            return coordinate;
+    }
+
+    public void updateNotationLabels() {
+        for (int rank = 0; rank < ModelConstants.BOARD_SIZE; ++rank) {
+            rankNotationLabels[rank].setText("" + (char) (ModelConstants.BOARD_SIZE - adjustCoordinate(rank) + '0'));
+        }
+        for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
+            fileNotationLabels[file].setText("" + (char) ('a' + adjustCoordinate(file)));
+        }
+    }
+
+    public void flipBoard() {
+        isBoardFlipped = !isBoardFlipped;
+        updateNotationLabels();
+        revalidate();
+        repaint();
+    }
+
+    public void updateList() {
+        if (logic.getTurn() == PlayerEnum.BLACK || listModel.getSize() <= 0)
+            listModel.addElement(logic.getFullmoveNumber() + ". " + logic.getLastMove());
+        else {
+            int lastIndex = listModel.getSize() - 1;
+            listModel.setElementAt(listModel.elementAt(lastIndex) + " " + logic.getLastMove(), lastIndex);
+        }
+    }
+
+    public void playSound(SoundEnum sound) {
+        try {
+            Clip clip = AudioSystem.getClip();
+            File soundFile;
+            switch (sound) {
+                case CAPTURE -> soundFile = GuiConstants.CAPTURE_SOUND;
+                case PROMOTE -> soundFile = GuiConstants.PROMOTE_SOUND;
+                case MOVE -> soundFile = GuiConstants.MOVE_SOUND;
+                case CHECK -> soundFile = GuiConstants.CHECK_SOUND;
+                case ILLEGAL -> soundFile = GuiConstants.ILLEGAL_SOUND;
+                case START -> soundFile = GuiConstants.START_SOUND;
+                case END -> soundFile = GuiConstants.END_SOUND;
+                case CASTLE -> soundFile = GuiConstants.CASTLE_SOUND;
+                default -> soundFile = GuiConstants.MOVE_SOUND;
+            }
+            AudioInputStream ais = AudioSystem.getAudioInputStream(soundFile);
+            clip.open(ais);
+            clip.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private class ChessMouseListener extends MouseAdapter {
         @Override
         public void mousePressed(MouseEvent event) {
             ChessSquare selectedSquare = (ChessSquare) event.getSource();
-            Piece selectedPiece=logic.getBoard().getPiece(new Position(adjustCoordinate(selectedSquare.getFile()), adjustCoordinate(selectedSquare.getRank())));
-            if (event.getButton() == MouseEvent.BUTTON1 && selectedPiece!= null && selectedPiece.getColor() == logic.getTurn()) {
+            Piece selectedPiece = logic.getBoard().getPiece(new Position(adjustCoordinate(selectedSquare.getFile()), adjustCoordinate(selectedSquare.getRank())));
+            if (event.getButton() == MouseEvent.BUTTON1 && selectedPiece != null && selectedPiece.getColor() == logic.getTurn()) {
                 draggedSquare = selectedSquare;
                 ArrayList<Position> legalMoves = logic.getLegalMoves(new Position(adjustCoordinate(draggedSquare.getFile()), adjustCoordinate(draggedSquare.getRank())));
                 for (Position pos : legalMoves) {
@@ -113,6 +239,7 @@ public class ChessGamePanel extends JPanel {
                 int destinationRank = ((int) destinationPoint.getY()) / GuiConstants.SQUARE_SIZE;
                 if (-1 < destinationFile && destinationRank < ModelConstants.BOARD_SIZE) {
                     ChessSquare destinationSquare = squares[destinationRank][destinationFile];
+                    boolean isCapture = logic.getBoard().getPiece(new Position(destinationFile, destinationRank)) != null;
                     MoveType moveType = logic.getMoveType(new Move(new Position(adjustCoordinate(draggedSquare.getFile()), adjustCoordinate(draggedSquare.getRank())), new Position(adjustCoordinate(destinationSquare.getFile()), adjustCoordinate(destinationSquare.getRank()))), logic.getBoard(), logic.getTurn());
                     if (moveType == MoveType.PROMOTION) {
                         promotionPanel.setColor(logic.getTurn());
@@ -129,11 +256,31 @@ public class ChessGamePanel extends JPanel {
                         }
                         logic.move(new Move(new Position(adjustCoordinate(draggedSquare.getFile()), adjustCoordinate(draggedSquare.getRank())), new Position(adjustCoordinate(destinationSquare.getFile()), adjustCoordinate(destinationSquare.getRank()))), selectedPromotion);
                         selectedPromotion = null;
-                    } else
+                        if (logic.isInCheck())
+                            playSound(SoundEnum.CHECK);
+                        else
+                            playSound(SoundEnum.PROMOTE);
+                    } else {
                         logic.move(new Move(new Position(adjustCoordinate(draggedSquare.getFile()), adjustCoordinate(draggedSquare.getRank())), new Position(adjustCoordinate(destinationSquare.getFile()), adjustCoordinate(destinationSquare.getRank()))), null);
-                    if (moveType!=MoveType.ILLEGAL){
+                        if (logic.isInCheck())
+                            playSound(SoundEnum.CHECK);
+                        else {
+                            switch (moveType) {
+                                case ILLEGAL -> playSound(SoundEnum.ILLEGAL);
+                                case SHORT_CASTLING, LONG_CASTLING -> playSound(SoundEnum.CASTLE);
+                                case EN_PASSANT -> playSound(SoundEnum.CAPTURE);
+                                default -> {
+                                    if (isCapture)
+                                        playSound(SoundEnum.CAPTURE);
+                                    else
+                                        playSound(SoundEnum.MOVE);
+                                }
+                            }
+                        }
+                    }
+                    if (moveType != MoveType.ILLEGAL) {
                         updateList();
-                        if (moveType!=MoveType.ILLEGAL && logic.getGameState()==GameState.IN_PROGRESS && logic.getGameMode()==GameMode.ENGINE){
+                        if (moveType != MoveType.ILLEGAL && logic.getGameState() == GameState.IN_PROGRESS && logic.getGameMode() == GameMode.ENGINE) {
                             logic.moveForEngine();
                             updateList();
                         }
@@ -176,101 +323,6 @@ public class ChessGamePanel extends JPanel {
             if (w != null) {
                 w.setVisible(false);
             }
-        }
-    }
-
-    public void reset() {
-        logic = new Logic();
-        draggedSquare = null;
-        legalSquares = new ArrayList<>();
-        selectedPromotion = null;
-        for (int rank = 0; rank < ModelConstants.BOARD_SIZE; ++rank) {
-            for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
-                squares[rank][file].updateSquare(logic.getBoard().getPiece(new Position(adjustCoordinate(file), adjustCoordinate(rank))),logic.isInCheck(),logic.getTurn());
-                squares[rank][file].removeMouseListener(chessMouseListener);
-                squares[rank][file].removeMouseMotionListener(chessMouseMotionListener);
-                squares[rank][file].addMouseListener(chessMouseListener);
-                squares[rank][file].addMouseMotionListener(chessMouseMotionListener);
-            }
-        }
-        listModel.removeAllElements();
-        revalidate();
-        repaint();
-    }
-
-    public void reset(int skillLevel) {
-        logic = new Logic(skillLevel);
-        draggedSquare = null;
-        legalSquares = new ArrayList<>();
-        selectedPromotion = null;
-        for (int rank = 0; rank < ModelConstants.BOARD_SIZE; ++rank) {
-            for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
-                squares[rank][file].updateSquare(logic.getBoard().getPiece(new Position(adjustCoordinate(file), adjustCoordinate(rank))),logic.isInCheck(),logic.getTurn());
-                squares[rank][file].removeMouseListener(chessMouseListener);
-                squares[rank][file].removeMouseMotionListener(chessMouseMotionListener);
-                squares[rank][file].addMouseListener(chessMouseListener);
-                squares[rank][file].addMouseMotionListener(chessMouseMotionListener);
-            }
-        }
-        listModel.removeAllElements();
-        revalidate();
-        repaint();
-    }
-
-    public void loadFEN(String fen) {
-        try {
-            logic = new Logic(fen);
-            draggedSquare = null;
-            legalSquares = new ArrayList<>();
-            selectedPromotion = null;
-            isBoardFlipped=false;
-            for (int rank = 0; rank < ModelConstants.BOARD_SIZE; ++rank) {
-                for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
-                    squares[rank][file].updateSquare(logic.getBoard().getPiece(new Position(file, rank)), logic.isInCheck(), logic.getTurn());
-                    squares[rank][file].removeMouseListener(chessMouseListener);
-                    squares[rank][file].removeMouseMotionListener(chessMouseMotionListener);
-                    squares[rank][file].addMouseListener(chessMouseListener);
-                    squares[rank][file].addMouseMotionListener(chessMouseMotionListener);
-                }
-            }
-            listModel.removeAllElements();
-            revalidate();
-            repaint();
-        }
-        catch(InvalidFenException ife) {
-            //TBD
-        }
-    }
-
-    public int adjustCoordinate(int coordinate) {
-        if (isBoardFlipped)
-            return ModelConstants.BOARD_SIZE-1-coordinate;
-        else
-            return coordinate;
-    }
-
-    public void updateNotationLabels(){
-        for (int rank=0;rank<ModelConstants.BOARD_SIZE;++rank) {
-            rankNotationLabels[rank].setText(""+(char)(ModelConstants.BOARD_SIZE-adjustCoordinate(rank)+'0'));
-        }
-        for (int file=0;file<ModelConstants.BOARD_SIZE;++file){
-            fileNotationLabels[file].setText(""+(char)('a'+adjustCoordinate(file)));
-        }
-    }
-
-    public void flipBoard() {
-        isBoardFlipped=!isBoardFlipped;
-        updateNotationLabels();
-        revalidate();
-        repaint();
-    }
-
-    public void updateList() {
-        if (logic.getTurn()==PlayerEnum.BLACK ||listModel.getSize()<=0)
-            listModel.addElement(logic.getFullmoveNumber()+". "+logic.getLastMove());
-        else {
-            int lastIndex=listModel.getSize()-1;
-            listModel.setElementAt(listModel.elementAt(lastIndex)+" "+logic.getLastMove(),lastIndex);
         }
     }
 }

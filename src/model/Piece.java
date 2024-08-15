@@ -43,7 +43,7 @@ public class Piece {
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         switch (type) {
             case PAWN -> {
                 return "";

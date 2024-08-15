@@ -44,32 +44,32 @@ public class Board {
     }
 
     public Board(String piecePlacement) throws InvalidFenException {
-        String[] ranks=piecePlacement.split("/");
+        String[] ranks = piecePlacement.split("/");
         board = new Piece[ModelConstants.BOARD_SIZE][ModelConstants.BOARD_SIZE];
-            for (int rank_idx=0;rank_idx<ModelConstants.BOARD_SIZE;++rank_idx){
-                int file_idx=0;
-                for(int char_idx=0;char_idx<ranks[rank_idx].length() && file_idx<ModelConstants.BOARD_SIZE;++char_idx) {
-                    switch (ranks[rank_idx].charAt(char_idx)) {
-                        case 'p' -> board[rank_idx][file_idx]=new Piece(PieceType.PAWN,PlayerEnum.BLACK);
-                        case 'n' -> board[rank_idx][file_idx]=new Piece(PieceType.KNIGHT,PlayerEnum.BLACK);
-                        case 'b' -> board[rank_idx][file_idx]=new Piece(PieceType.BISHOP,PlayerEnum.BLACK);
-                        case 'r' -> board[rank_idx][file_idx]=new Piece(PieceType.ROOK,PlayerEnum.BLACK);
-                        case 'q' -> board[rank_idx][file_idx]=new Piece(PieceType.QUEEN,PlayerEnum.BLACK);
-                        case 'k' -> board[rank_idx][file_idx]=new Piece(PieceType.KING,PlayerEnum.BLACK);
-                        case 'P' -> board[rank_idx][file_idx]=new Piece(PieceType.PAWN,PlayerEnum.WHITE);
-                        case 'N' -> board[rank_idx][file_idx]=new Piece(PieceType.KNIGHT,PlayerEnum.WHITE);
-                        case 'B' -> board[rank_idx][file_idx]=new Piece(PieceType.BISHOP,PlayerEnum.WHITE);
-                        case 'R' -> board[rank_idx][file_idx]=new Piece(PieceType.ROOK,PlayerEnum.WHITE);
-                        case 'Q' -> board[rank_idx][file_idx]=new Piece(PieceType.QUEEN,PlayerEnum.WHITE);
-                        case 'K' -> board[rank_idx][file_idx]=new Piece(PieceType.KING,PlayerEnum.WHITE);
-                        default -> {
-                            int steps=Character.getNumericValue(ranks[rank_idx].charAt(char_idx));
-                            file_idx+=steps-1;
-                        }
+        for (int rank_idx = 0; rank_idx < ModelConstants.BOARD_SIZE; ++rank_idx) {
+            int file_idx = 0;
+            for (int char_idx = 0; char_idx < ranks[rank_idx].length() && file_idx < ModelConstants.BOARD_SIZE; ++char_idx) {
+                switch (ranks[rank_idx].charAt(char_idx)) {
+                    case 'p' -> board[rank_idx][file_idx] = new Piece(PieceType.PAWN, PlayerEnum.BLACK);
+                    case 'n' -> board[rank_idx][file_idx] = new Piece(PieceType.KNIGHT, PlayerEnum.BLACK);
+                    case 'b' -> board[rank_idx][file_idx] = new Piece(PieceType.BISHOP, PlayerEnum.BLACK);
+                    case 'r' -> board[rank_idx][file_idx] = new Piece(PieceType.ROOK, PlayerEnum.BLACK);
+                    case 'q' -> board[rank_idx][file_idx] = new Piece(PieceType.QUEEN, PlayerEnum.BLACK);
+                    case 'k' -> board[rank_idx][file_idx] = new Piece(PieceType.KING, PlayerEnum.BLACK);
+                    case 'P' -> board[rank_idx][file_idx] = new Piece(PieceType.PAWN, PlayerEnum.WHITE);
+                    case 'N' -> board[rank_idx][file_idx] = new Piece(PieceType.KNIGHT, PlayerEnum.WHITE);
+                    case 'B' -> board[rank_idx][file_idx] = new Piece(PieceType.BISHOP, PlayerEnum.WHITE);
+                    case 'R' -> board[rank_idx][file_idx] = new Piece(PieceType.ROOK, PlayerEnum.WHITE);
+                    case 'Q' -> board[rank_idx][file_idx] = new Piece(PieceType.QUEEN, PlayerEnum.WHITE);
+                    case 'K' -> board[rank_idx][file_idx] = new Piece(PieceType.KING, PlayerEnum.WHITE);
+                    default -> {
+                        int steps = Character.getNumericValue(ranks[rank_idx].charAt(char_idx));
+                        file_idx += steps - 1;
                     }
-                    ++file_idx;
                 }
+                ++file_idx;
             }
+        }
     }
 
     public Piece getPiece(Position pos) {

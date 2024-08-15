@@ -17,8 +17,8 @@ public class Position {
     }
 
     public Position(String notation) {
-        file=notation.charAt(0)-'a';
-        rank=ModelConstants.BOARD_SIZE-Character.getNumericValue(notation.charAt(1));
+        file = notation.charAt(0) - 'a';
+        rank = ModelConstants.BOARD_SIZE - Character.getNumericValue(notation.charAt(1));
     }
 
     public static char getChar(int i) {

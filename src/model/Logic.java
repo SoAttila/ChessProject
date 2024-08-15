@@ -5,6 +5,9 @@ import java.util.HashMap;
 
 public class Logic {
     private final Board board;
+    private final ArrayList<String> gamePositions;
+    private final ArrayList<String> moves = new ArrayList<>();
+    private final EngineConnector engineConnector = new EngineConnector();
     private PlayerEnum turn;
     private Position possibleEnPassantPos;
     private Position whiteKingPos;
@@ -14,9 +17,6 @@ public class Logic {
     private GameState gameState;
     private int halfmoveClock;
     private int fullmoveNumber;
-    private final ArrayList<String> gamePositions;
-    private final ArrayList<String> moves=new ArrayList<>();
-    private final EngineConnector engineConnector=new EngineConnector();
     private GameMode gameMode;
 
     public Logic() {
@@ -26,95 +26,95 @@ public class Logic {
         whiteKingPos = new Position(ModelConstants.BOARD_SIZE / 2, ModelConstants.BOARD_SIZE - 1);
         blackKingPos = new Position(ModelConstants.BOARD_SIZE / 2, 0);
         isInCheck = false;
-        isCheckmate=false;
-        gameState=GameState.IN_PROGRESS;
-        halfmoveClock=0;
-        fullmoveNumber=1;
-        gamePositions=new ArrayList<>();
+        isCheckmate = false;
+        gameState = GameState.IN_PROGRESS;
+        halfmoveClock = 0;
+        fullmoveNumber = 1;
+        gamePositions = new ArrayList<>();
         gamePositions.add(getModifiedFEN());
         moves.clear();
-        gameMode=GameMode.OFFLINE;
+        gameMode = GameMode.OFFLINE;
     }
 
     public Logic(int skillLevel) {
         this();
-        gameMode=GameMode.ENGINE;
+        gameMode = GameMode.ENGINE;
         engineConnector.sendCommand("uci");
-        engineConnector.sendCommand("setoption name Skill Level value "+skillLevel);
+        engineConnector.sendCommand("setoption name Skill Level value " + skillLevel);
     }
 
     public Logic(String fen) throws InvalidFenException {
-        String[] fields =fen.split(" ");
-            //piece placement
-            board=new Board(fields[0]);
-            //color to move
-            switch (fields[1]) {
-                case "b" -> turn=PlayerEnum.BLACK;
-                case "w" -> this.turn=PlayerEnum.WHITE;
-            }
+        String[] fields = fen.split(" ");
+        //piece placement
+        board = new Board(fields[0]);
+        //color to move
+        switch (fields[1]) {
+            case "b" -> turn = PlayerEnum.BLACK;
+            case "w" -> this.turn = PlayerEnum.WHITE;
+        }
 
-            blackKingPos=null;
-            whiteKingPos=null;
-            for (int file=0;file<ModelConstants.BOARD_SIZE;++file) {
-                for (int rank=0;rank<ModelConstants.BOARD_SIZE;++rank) {
-                    Position pos=new Position(file,rank);
-                    Piece piece=board.getPiece(pos);
-                    if (piece!=null){
-                        piece.setHasMoved(true);
-                        if (piece.getType()==PieceType.KING) {
-                            switch (piece.getColor()) {
-                                case WHITE -> whiteKingPos = pos;
-                                case BLACK -> blackKingPos = pos;
-                            }
+        blackKingPos = null;
+        whiteKingPos = null;
+        for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
+            for (int rank = 0; rank < ModelConstants.BOARD_SIZE; ++rank) {
+                Position pos = new Position(file, rank);
+                Piece piece = board.getPiece(pos);
+                if (piece != null) {
+                    piece.setHasMoved(true);
+                    if (piece.getType() == PieceType.KING) {
+                        switch (piece.getColor()) {
+                            case WHITE -> whiteKingPos = pos;
+                            case BLACK -> blackKingPos = pos;
                         }
                     }
                 }
             }
-            if (!whiteKingPos.equals(new Position("e1"))){
-                board.getPiece(whiteKingPos).setHasMoved(true);
-            }
-            if (!blackKingPos.equals(new Position("e8"))){
-                board.getPiece(blackKingPos).setHasMoved(true);
-            }
-            //castling rights
-            String castlingRights=fields[2];
-            for (int charIdx=0;charIdx<castlingRights.length();++charIdx) {
-                switch (castlingRights.charAt(charIdx)) {
-                    case 'k'-> {
-                        checkIfNullAndSetHasMovedToFalse(board.getPiece(new Position("h8")));
-                        checkIfNullAndSetHasMovedToFalse(board.getPiece(new Position("e8")));
-                    }
-                    case 'q' -> {
-                        checkIfNullAndSetHasMovedToFalse(board.getPiece(new Position("a8")));
-                        checkIfNullAndSetHasMovedToFalse(board.getPiece(new Position("e8")));
-                    }
-                    case 'K'-> {
-                        checkIfNullAndSetHasMovedToFalse(board.getPiece(new Position("h1")));
-                        checkIfNullAndSetHasMovedToFalse(board.getPiece(new Position("e1")));
-                    }
-                    case 'Q' -> {
-                        checkIfNullAndSetHasMovedToFalse(board.getPiece(new Position("a1")));
-                        checkIfNullAndSetHasMovedToFalse(board.getPiece(new Position("e1")));
-                    }
+        }
+        if (!whiteKingPos.equals(new Position("e1"))) {
+            board.getPiece(whiteKingPos).setHasMoved(true);
+        }
+        if (!blackKingPos.equals(new Position("e8"))) {
+            board.getPiece(blackKingPos).setHasMoved(true);
+        }
+        //castling rights
+        String castlingRights = fields[2];
+        for (int charIdx = 0; charIdx < castlingRights.length(); ++charIdx) {
+            switch (castlingRights.charAt(charIdx)) {
+                case 'k' -> {
+                    checkIfNullAndSetHasMovedToFalse(board.getPiece(new Position("h8")));
+                    checkIfNullAndSetHasMovedToFalse(board.getPiece(new Position("e8")));
+                }
+                case 'q' -> {
+                    checkIfNullAndSetHasMovedToFalse(board.getPiece(new Position("a8")));
+                    checkIfNullAndSetHasMovedToFalse(board.getPiece(new Position("e8")));
+                }
+                case 'K' -> {
+                    checkIfNullAndSetHasMovedToFalse(board.getPiece(new Position("h1")));
+                    checkIfNullAndSetHasMovedToFalse(board.getPiece(new Position("e1")));
+                }
+                case 'Q' -> {
+                    checkIfNullAndSetHasMovedToFalse(board.getPiece(new Position("a1")));
+                    checkIfNullAndSetHasMovedToFalse(board.getPiece(new Position("e1")));
                 }
             }
-            //en passant target pos
-            possibleEnPassantPos = fields[3].equals("-")?null:new Position(fields[3]);
-            //half-move clock
-            halfmoveClock=Integer.parseInt(fields[4]);
-            //full-move number
-            fullmoveNumber=Integer.parseInt(fields[5]);
-            gamePositions=new ArrayList<>();
-            gamePositions.add(getModifiedFEN());
-            moves.clear();
-            isInCheck = (isInCheck(turn == PlayerEnum.BLACK ? blackKingPos : whiteKingPos, board, turn==PlayerEnum.WHITE?PlayerEnum.BLACK:PlayerEnum.WHITE));
-            isCheckmate=isInCheck&&!isThereAnyLegalMove();
-            updateGameState();
-            gameMode=GameMode.OFFLINE;
+        }
+        //en passant target pos
+        possibleEnPassantPos = fields[3].equals("-") ? null : new Position(fields[3]);
+        //half-move clock
+        halfmoveClock = Integer.parseInt(fields[4]);
+        //full-move number
+        fullmoveNumber = Integer.parseInt(fields[5]);
+        gamePositions = new ArrayList<>();
+        gamePositions.add(getModifiedFEN());
+        moves.clear();
+        isInCheck = (isInCheck(turn == PlayerEnum.BLACK ? blackKingPos : whiteKingPos, board, turn == PlayerEnum.WHITE ? PlayerEnum.BLACK : PlayerEnum.WHITE));
+        isCheckmate = isInCheck && !isThereAnyLegalMove();
+        updateGameState();
+        gameMode = GameMode.OFFLINE;
     }
 
     private void checkIfNullAndSetHasMovedToFalse(Piece piece) {
-        if (piece!=null) {
+        if (piece != null) {
             piece.setHasMoved(false);
         }
     }
@@ -257,7 +257,7 @@ public class Logic {
 
     public MoveType getMoveType(Move move, Board board, PlayerEnum turn) {
         MoveType pseudoMoveType = getPseudoMoveType(move, board, turn);
-        if (pseudoMoveType != MoveType.ILLEGAL && !isInCheckAfterMove(move, pseudoMoveType,turn,null,turn)
+        if (pseudoMoveType != MoveType.ILLEGAL && !isInCheckAfterMove(move, pseudoMoveType, turn, null, turn)
                 && (pseudoMoveType != MoveType.SHORT_CASTLING ||
                 (!isInCheck(new Position(ModelConstants.BOARD_SIZE - 3, turn == PlayerEnum.WHITE ? ModelConstants.BOARD_SIZE - 1 : 0), board, turn == PlayerEnum.WHITE ? PlayerEnum.BLACK : PlayerEnum.WHITE) && !isInCheck(new Position(ModelConstants.BOARD_SIZE - 4, turn == PlayerEnum.WHITE ? ModelConstants.BOARD_SIZE - 1 : 0), board, turn == PlayerEnum.WHITE ? PlayerEnum.BLACK : PlayerEnum.WHITE)))
                 && (pseudoMoveType != MoveType.LONG_CASTLING ||
@@ -269,11 +269,11 @@ public class Logic {
     public void move(Move move, PieceType promoteTo) {
         MoveType moveType = getMoveType(move, board, turn);
         if (moveType != MoveType.ILLEGAL) {
-            String moveNotation =getMoveNotation(move,moveType,promoteTo);
-            if (board.getPiece(move.getFrom()).getType()!=PieceType.PAWN && board.getPiece(move.getTo())==null)
+            String moveNotation = getMoveNotation(move, moveType, promoteTo);
+            if (board.getPiece(move.getFrom()).getType() != PieceType.PAWN && board.getPiece(move.getTo()) == null)
                 ++halfmoveClock;
             else
-                halfmoveClock=0;
+                halfmoveClock = 0;
             switch (moveType) {
                 case NORMAL -> {
                     board.getPiece(move.getFrom()).setHasMoved(true);
@@ -324,46 +324,46 @@ public class Logic {
                     possibleEnPassantPos = null;
                 }
             }
-            if (turn==PlayerEnum.BLACK)
+            if (turn == PlayerEnum.BLACK)
                 ++fullmoveNumber;
             isInCheck = (isInCheck(turn == PlayerEnum.WHITE ? blackKingPos : whiteKingPos, board, turn));
             turn = (turn == PlayerEnum.WHITE ? PlayerEnum.BLACK : PlayerEnum.WHITE);
-            isCheckmate=isInCheck&&!isThereAnyLegalMove();
-            moves.add(moveNotation+(isInCheck?(isCheckmate?"#":"+"):""));
+            isCheckmate = isInCheck && !isThereAnyLegalMove();
+            moves.add(moveNotation + (isInCheck ? (isCheckmate ? "#" : "+") : ""));
             gamePositions.add(getModifiedFEN());
             updateGameState();
         }
     }
 
-    public void moveForEngine(){
-        engineConnector.sendCommand("position fen "+getFEN());
-        engineConnector.sendCommand("go depth "+ModelConstants.MAXIMUM_ENGINE_DEPTH);
-        String bestMove=null;
-        while(bestMove==null){
-            bestMove=engineConnector.getBestMove();
+    public void moveForEngine() {
+        engineConnector.sendCommand("position fen " + getFEN());
+        engineConnector.sendCommand("go depth " + ModelConstants.MAXIMUM_ENGINE_DEPTH);
+        String bestMove = null;
+        while (bestMove == null) {
+            bestMove = engineConnector.getBestMove();
         }
         System.out.println(bestMove);
-        Move engineMove=new Move(new Position(bestMove.substring(0,2)),new Position(bestMove.substring(2,4)));
-        String enginePromoteToString=bestMove.length()==5?bestMove.substring(4):"";
+        Move engineMove = new Move(new Position(bestMove.substring(0, 2)), new Position(bestMove.substring(2, 4)));
+        String enginePromoteToString = bestMove.length() == 5 ? bestMove.substring(4) : "";
         PieceType enginePromoteTo;
-        switch (enginePromoteToString){
-            case "q" -> enginePromoteTo=PieceType.QUEEN;
-            case "n" ->enginePromoteTo=PieceType.KNIGHT;
-            case "r" ->enginePromoteTo=PieceType.ROOK;
-            case "b" ->enginePromoteTo=PieceType.BISHOP;
-            default -> enginePromoteTo=null;
+        switch (enginePromoteToString) {
+            case "q" -> enginePromoteTo = PieceType.QUEEN;
+            case "n" -> enginePromoteTo = PieceType.KNIGHT;
+            case "r" -> enginePromoteTo = PieceType.ROOK;
+            case "b" -> enginePromoteTo = PieceType.BISHOP;
+            default -> enginePromoteTo = null;
         }
-        move(engineMove,enginePromoteTo);
+        move(engineMove, enginePromoteTo);
     }
 
-    public String getMoveNotation(Move move,MoveType moveType,PieceType promoteTo){
-        StringBuilder moveNotation=new StringBuilder();
-        Piece originalPiece= board.getPiece(move.getFrom());
-        boolean isCapture=board.getPiece(move.getTo())!=null || (possibleEnPassantPos!=null && possibleEnPassantPos.equals(move.getTo()));
-        boolean isAmbiguous=false;
-        boolean isAmbiguousByFile=false;
-        boolean isAmbiguousByRank=false;
-        if (originalPiece.getType()!=PieceType.PAWN && originalPiece.getType()!=PieceType.KING) {
+    public String getMoveNotation(Move move, MoveType moveType, PieceType promoteTo) {
+        StringBuilder moveNotation = new StringBuilder();
+        Piece originalPiece = board.getPiece(move.getFrom());
+        boolean isCapture = board.getPiece(move.getTo()) != null || (possibleEnPassantPos != null && possibleEnPassantPos.equals(move.getTo()));
+        boolean isAmbiguous = false;
+        boolean isAmbiguousByFile = false;
+        boolean isAmbiguousByRank = false;
+        if (originalPiece.getType() != PieceType.PAWN && originalPiece.getType() != PieceType.KING) {
             for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
                 for (int rank = 0; rank < ModelConstants.BOARD_SIZE; ++rank) {
                     if ((file != move.getFrom().getFile() || rank != move.getFrom().getRank())) {
@@ -371,10 +371,10 @@ public class Logic {
                         Piece piece = board.getPiece(pos);
                         if (piece != null && piece.equals(board.getPiece(move.getFrom())) && getMoveType(new Move(pos, move.getTo()), board, turn) != MoveType.ILLEGAL) {
                             isAmbiguous = true;
-                            if (pos.getFile()==move.getFrom().getFile())
-                                isAmbiguousByFile=true;
-                            else if(pos.getRank()==move.getFrom().getRank())
-                                isAmbiguousByRank=true;
+                            if (pos.getFile() == move.getFrom().getFile())
+                                isAmbiguousByFile = true;
+                            else if (pos.getRank() == move.getFrom().getRank())
+                                isAmbiguousByRank = true;
                         }
                     }
                 }
@@ -389,18 +389,17 @@ public class Logic {
                 moveNotation.append("=").append(promoteTo);
             }
             default -> {
-                moveNotation.append((originalPiece.getType()==PieceType.PAWN && isCapture?move.getFrom().toString().charAt(0):originalPiece));
-                if (isAmbiguous){
+                moveNotation.append((originalPiece.getType() == PieceType.PAWN && isCapture ? move.getFrom().toString().charAt(0) : originalPiece));
+                if (isAmbiguous) {
                     if (isAmbiguousByFile) {
                         if (isAmbiguousByRank)
                             moveNotation.append(move.getFrom());
                         else
                             moveNotation.append(move.getFrom().toString().charAt(1));
-                    }
-                    else
+                    } else
                         moveNotation.append(move.getFrom().toString().charAt(0));
                 }
-                moveNotation.append((isCapture?"x":""));
+                moveNotation.append((isCapture ? "x" : ""));
                 moveNotation.append(move.getTo());
             }
         }
@@ -421,7 +420,7 @@ public class Logic {
         return false;
     }
 
-    private boolean isInCheckAfterMove(Move move, MoveType moveType,PlayerEnum turn,PieceType promoteTo,PlayerEnum promoteToColor) {
+    private boolean isInCheckAfterMove(Move move, MoveType moveType, PlayerEnum turn, PieceType promoteTo, PlayerEnum promoteToColor) {
         Board tempBoard = new Board(board);
         Position tempWhiteKingPos = new Position(whiteKingPos);
         Position tempBlackKingPos = new Position(blackKingPos);
@@ -480,11 +479,11 @@ public class Logic {
     }
 
     private boolean isThereAnyLegalMove() {
-        for (int file=0;file< ModelConstants.BOARD_SIZE;++file) {
-            for(int rank=0;rank<ModelConstants.BOARD_SIZE;++rank) {
-                Position pos = new Position(file,rank);
-                Piece piece= board.getPiece(pos);
-                if (piece!=null && piece.getColor()==turn){
+        for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
+            for (int rank = 0; rank < ModelConstants.BOARD_SIZE; ++rank) {
+                Position pos = new Position(file, rank);
+                Piece piece = board.getPiece(pos);
+                if (piece != null && piece.getColor() == turn) {
                     if (!getLegalMoves(pos).isEmpty())
                         return true;
                 }
@@ -494,17 +493,17 @@ public class Logic {
     }
 
     public String getFEN() {
-        String FEN="";
-        StringBuilder piecePlacement= new StringBuilder();
-        for (int rank=0;rank<ModelConstants.BOARD_SIZE;++rank) {
-            int steps=0;
+        String FEN = "";
+        StringBuilder piecePlacement = new StringBuilder();
+        for (int rank = 0; rank < ModelConstants.BOARD_SIZE; ++rank) {
+            int steps = 0;
             for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
-                Piece piece=board.getPiece(new Position(file,rank));
-                if (piece!=null) {
-                    if (steps!=0)
+                Piece piece = board.getPiece(new Position(file, rank));
+                if (piece != null) {
+                    if (steps != 0)
                         piecePlacement.append(steps);
-                    steps=0;
-                    switch (piece.getColor()){
+                    steps = 0;
+                    switch (piece.getColor()) {
                         case WHITE -> {
                             switch (piece.getType()) {
                                 case KING -> piecePlacement.append('K');
@@ -526,58 +525,57 @@ public class Logic {
                             }
                         }
                     }
-                }
-                else{
+                } else {
                     ++steps;
-                    if(file==ModelConstants.BOARD_SIZE-1)
+                    if (file == ModelConstants.BOARD_SIZE - 1)
                         piecePlacement.append(steps);
                 }
             }
-            if(rank!=ModelConstants.BOARD_SIZE-1)
+            if (rank != ModelConstants.BOARD_SIZE - 1)
                 piecePlacement.append('/');
         }
-        FEN+=piecePlacement+" ";
-        FEN+=(turn==PlayerEnum.WHITE?"w":"b")+" ";
-        String castlingRights="";
-        Piece piece=board.getPiece(new Position("e1"));
-        if (piece!=null && piece.getType()==PieceType.KING && !piece.hasMoved()) {
-            piece=board.getPiece(new Position("h1"));
-            if (piece!=null && piece.getType()==PieceType.ROOK && !piece.hasMoved())
-                castlingRights+='K';
-            piece=board.getPiece(new Position("a1"));
-            if (piece!=null && piece.getType()==PieceType.ROOK && !piece.hasMoved())
-                castlingRights+='Q';
+        FEN += piecePlacement + " ";
+        FEN += (turn == PlayerEnum.WHITE ? "w" : "b") + " ";
+        String castlingRights = "";
+        Piece piece = board.getPiece(new Position("e1"));
+        if (piece != null && piece.getType() == PieceType.KING && !piece.hasMoved()) {
+            piece = board.getPiece(new Position("h1"));
+            if (piece != null && piece.getType() == PieceType.ROOK && !piece.hasMoved())
+                castlingRights += 'K';
+            piece = board.getPiece(new Position("a1"));
+            if (piece != null && piece.getType() == PieceType.ROOK && !piece.hasMoved())
+                castlingRights += 'Q';
         }
-        piece=board.getPiece(new Position("e8"));
-        if (piece!=null && piece.getType()==PieceType.KING && !piece.hasMoved()) {
-            piece=board.getPiece(new Position("h8"));
-            if (piece!=null && piece.getType()==PieceType.ROOK && !piece.hasMoved())
-                castlingRights+='k';
-            piece=board.getPiece(new Position("a8"));
-            if (piece!=null && piece.getType()==PieceType.ROOK && !piece.hasMoved())
-                castlingRights+='q';
+        piece = board.getPiece(new Position("e8"));
+        if (piece != null && piece.getType() == PieceType.KING && !piece.hasMoved()) {
+            piece = board.getPiece(new Position("h8"));
+            if (piece != null && piece.getType() == PieceType.ROOK && !piece.hasMoved())
+                castlingRights += 'k';
+            piece = board.getPiece(new Position("a8"));
+            if (piece != null && piece.getType() == PieceType.ROOK && !piece.hasMoved())
+                castlingRights += 'q';
         }
         if (castlingRights.equals(""))
-            castlingRights="-";
-        FEN+=castlingRights+" ";
-        FEN+=(possibleEnPassantPos==null?"-":possibleEnPassantPos)+" ";
-        FEN+=halfmoveClock+" "+fullmoveNumber;
+            castlingRights = "-";
+        FEN += castlingRights + " ";
+        FEN += (possibleEnPassantPos == null ? "-" : possibleEnPassantPos) + " ";
+        FEN += halfmoveClock + " " + fullmoveNumber;
         return FEN;
     }
 
     //Modified to enable comparing positions for threefold repetition
     public String getModifiedFEN() {
-        String FEN="";
-        StringBuilder piecePlacement= new StringBuilder();
-        for (int rank=0;rank<ModelConstants.BOARD_SIZE;++rank) {
-            int steps=0;
+        String FEN = "";
+        StringBuilder piecePlacement = new StringBuilder();
+        for (int rank = 0; rank < ModelConstants.BOARD_SIZE; ++rank) {
+            int steps = 0;
             for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
-                Piece piece=board.getPiece(new Position(file,rank));
-                if (piece!=null) {
-                    if (steps!=0)
+                Piece piece = board.getPiece(new Position(file, rank));
+                if (piece != null) {
+                    if (steps != 0)
                         piecePlacement.append(steps);
-                    steps=0;
-                    switch (piece.getColor()){
+                    steps = 0;
+                    switch (piece.getColor()) {
                         case WHITE -> {
                             switch (piece.getType()) {
                                 case KING -> piecePlacement.append('K');
@@ -599,41 +597,40 @@ public class Logic {
                             }
                         }
                     }
-                }
-                else{
+                } else {
                     ++steps;
-                    if(file==ModelConstants.BOARD_SIZE-1)
+                    if (file == ModelConstants.BOARD_SIZE - 1)
                         piecePlacement.append(steps);
                 }
             }
-            if(rank!=ModelConstants.BOARD_SIZE-1)
+            if (rank != ModelConstants.BOARD_SIZE - 1)
                 piecePlacement.append('/');
         }
-        FEN+=piecePlacement+" ";
-        FEN+=(turn==PlayerEnum.WHITE?"w":"b")+" ";
-        String castlingRights="";
-        Piece piece=board.getPiece(new Position("e1"));
-        if (piece!=null && piece.getType()==PieceType.KING && !piece.hasMoved()) {
-            piece=board.getPiece(new Position("h1"));
-            if (piece!=null && piece.getType()==PieceType.ROOK && !piece.hasMoved())
-                castlingRights+='K';
-            piece=board.getPiece(new Position("a1"));
-            if (piece!=null && piece.getType()==PieceType.ROOK && !piece.hasMoved())
-                castlingRights+='Q';
+        FEN += piecePlacement + " ";
+        FEN += (turn == PlayerEnum.WHITE ? "w" : "b") + " ";
+        String castlingRights = "";
+        Piece piece = board.getPiece(new Position("e1"));
+        if (piece != null && piece.getType() == PieceType.KING && !piece.hasMoved()) {
+            piece = board.getPiece(new Position("h1"));
+            if (piece != null && piece.getType() == PieceType.ROOK && !piece.hasMoved())
+                castlingRights += 'K';
+            piece = board.getPiece(new Position("a1"));
+            if (piece != null && piece.getType() == PieceType.ROOK && !piece.hasMoved())
+                castlingRights += 'Q';
         }
-        piece=board.getPiece(new Position("e8"));
-        if (piece!=null && piece.getType()==PieceType.KING && !piece.hasMoved()) {
-            piece=board.getPiece(new Position("h8"));
-            if (piece!=null && piece.getType()==PieceType.ROOK && !piece.hasMoved())
-                castlingRights+='k';
-            piece=board.getPiece(new Position("a8"));
-            if (piece!=null && piece.getType()==PieceType.ROOK && !piece.hasMoved())
-                castlingRights+='q';
+        piece = board.getPiece(new Position("e8"));
+        if (piece != null && piece.getType() == PieceType.KING && !piece.hasMoved()) {
+            piece = board.getPiece(new Position("h8"));
+            if (piece != null && piece.getType() == PieceType.ROOK && !piece.hasMoved())
+                castlingRights += 'k';
+            piece = board.getPiece(new Position("a8"));
+            if (piece != null && piece.getType() == PieceType.ROOK && !piece.hasMoved())
+                castlingRights += 'q';
         }
         if (castlingRights.equals(""))
-            castlingRights="-";
-        FEN+=castlingRights+" ";
-        if(possibleEnPassantPos!=null) {
+            castlingRights = "-";
+        FEN += castlingRights + " ";
+        if (possibleEnPassantPos != null) {
             for (int file = 0; file < ModelConstants.BOARD_SIZE; ++file) {
                 for (int rank = 0; rank < ModelConstants.BOARD_SIZE; ++rank) {
                     Position pos = new Position(file, rank);
@@ -650,26 +647,26 @@ public class Logic {
         return FEN;
     }
 
-    private boolean isThreefoldRepetition(){
-        HashMap<String,Integer> gamePositionOccurrences= new HashMap<>();
-        for(String gamePosition : gamePositions) {
-            if(gamePositionOccurrences.containsKey(gamePosition))
-                gamePositionOccurrences.put(gamePosition,gamePositionOccurrences.get(gamePosition)+1);
+    private boolean isThreefoldRepetition() {
+        HashMap<String, Integer> gamePositionOccurrences = new HashMap<>();
+        for (String gamePosition : gamePositions) {
+            if (gamePositionOccurrences.containsKey(gamePosition))
+                gamePositionOccurrences.put(gamePosition, gamePositionOccurrences.get(gamePosition) + 1);
             else
-                gamePositionOccurrences.put(gamePosition,1);
+                gamePositionOccurrences.put(gamePosition, 1);
         }
         return gamePositionOccurrences.containsValue(3);
     }
 
     private void updateGameState() {
         if (isCheckmate)
-            gameState=turn==PlayerEnum.WHITE?GameState.BLACK_WON:GameState.WHITE_WON;
+            gameState = turn == PlayerEnum.WHITE ? GameState.BLACK_WON : GameState.WHITE_WON;
         else if (!isThereAnyLegalMove())
-            gameState=GameState.DRAW;
-        else if (halfmoveClock==2*ModelConstants.FIFTY_MOVE || isThreefoldRepetition())
-            gameState=GameState.DRAW;
+            gameState = GameState.DRAW;
+        else if (halfmoveClock == 2 * ModelConstants.FIFTY_MOVE || isThreefoldRepetition())
+            gameState = GameState.DRAW;
         else
-            gameState=GameState.IN_PROGRESS;
+            gameState = GameState.IN_PROGRESS;
     }
 
     public PlayerEnum getTurn() {
@@ -685,12 +682,14 @@ public class Logic {
     }
 
     public String getLastMove() {
-        return moves.get(moves.size()-1);
+        return moves.get(moves.size() - 1);
     }
 
     public int getFullmoveNumber() {
         return fullmoveNumber;
     }
 
-    public GameMode getGameMode() {return gameMode;}
+    public GameMode getGameMode() {
+        return gameMode;
+    }
 }

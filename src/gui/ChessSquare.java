@@ -16,7 +16,7 @@ public class ChessSquare extends JLabel {
         this.file = file;
         updateSquare(piece, false, PlayerEnum.WHITE);
         setPreferredSize(new Dimension(GuiConstants.SQUARE_SIZE, GuiConstants.SQUARE_SIZE));
-        setBounds((rank+1) * GuiConstants.SQUARE_SIZE, file * GuiConstants.SQUARE_SIZE, GuiConstants.SQUARE_SIZE, GuiConstants.SQUARE_SIZE);
+        setBounds((rank + 1) * GuiConstants.SQUARE_SIZE, file * GuiConstants.SQUARE_SIZE, GuiConstants.SQUARE_SIZE, GuiConstants.SQUARE_SIZE);
     }
 
     public void updateSquare(Piece piece, boolean isInCheck, PlayerEnum turn) {
