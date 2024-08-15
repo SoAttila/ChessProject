@@ -143,15 +143,18 @@ public class Logic {
                     else if (Math.abs(move.getTo().getFile() - move.getFrom().getFile()) == 1 && move.getTo().getRank() - move.getFrom().getRank() == (turn == PlayerEnum.WHITE ? -1 : 1) && board.getPiece(move.getTo()) != null) {
                         if (move.getTo().getRank() == (turn == PlayerEnum.WHITE ? 0 : ModelConstants.BOARD_SIZE - 1))
                             return MoveType.PROMOTION;
-                        return MoveType.NORMAL;
+                        return MoveType.CAPTURE;
                     }
                     ////en passant
                     else if (possibleEnPassantPos != null && possibleEnPassantPos.equals(move.getTo()) && Math.abs(move.getTo().getFile() - move.getFrom().getFile()) == 1 && move.getTo().getRank() - move.getFrom().getRank() == (turn == PlayerEnum.WHITE ? -1 : 1))
                         return MoveType.EN_PASSANT;
                     return MoveType.ILLEGAL;
                 case KNIGHT:
-                    if ((Math.abs(move.getTo().getRank() - move.getFrom().getRank()) == 1 && Math.abs(move.getTo().getFile() - move.getFrom().getFile()) == 2) || (Math.abs(move.getTo().getRank() - move.getFrom().getRank()) == 2 && Math.abs(move.getTo().getFile() - move.getFrom().getFile()) == 1))
+                    if ((Math.abs(move.getTo().getRank() - move.getFrom().getRank()) == 1 && Math.abs(move.getTo().getFile() - move.getFrom().getFile()) == 2) || (Math.abs(move.getTo().getRank() - move.getFrom().getRank()) == 2 && Math.abs(move.getTo().getFile() - move.getFrom().getFile()) == 1)) {
+                        if (board.getPiece(move.getTo()) != null)
+                            return MoveType.CAPTURE;
                         return MoveType.NORMAL;
+                    }
                     return MoveType.ILLEGAL;
                 case BISHOP:
                     int deltaFile = move.getTo().getFile() - move.getFrom().getFile();
@@ -167,6 +170,8 @@ public class Logic {
                             file += sFile;
                             rank += sRank;
                         }
+                        if (board.getPiece(move.getTo()) != null)
+                            return MoveType.CAPTURE;
                         return MoveType.NORMAL;
                     }
                     return MoveType.ILLEGAL;
@@ -177,6 +182,8 @@ public class Logic {
                             if (board.getPiece(new Position(move.getTo().getFile(), rank)) != null)
                                 return MoveType.ILLEGAL;
                         }
+                        if (board.getPiece(move.getTo()) != null)
+                            return MoveType.CAPTURE;
                         return MoveType.NORMAL;
                     } else if (move.getTo().getRank() - move.getFrom().getRank() == 0) {
                         sFile = (move.getTo().getFile() - move.getFrom().getFile()) > 0 ? 1 : -1;
@@ -184,6 +191,8 @@ public class Logic {
                             if (board.getPiece(new Position(file, move.getTo().getRank())) != null)
                                 return MoveType.ILLEGAL;
                         }
+                        if (board.getPiece(move.getTo()) != null)
+                            return MoveType.CAPTURE;
                         return MoveType.NORMAL;
                     }
                     return MoveType.ILLEGAL;
@@ -194,6 +203,8 @@ public class Logic {
                             if (board.getPiece(new Position(move.getTo().getFile(), rank)) != null)
                                 return MoveType.ILLEGAL;
                         }
+                        if (board.getPiece(move.getTo()) != null)
+                            return MoveType.CAPTURE;
                         return MoveType.NORMAL;
                     } else if (move.getTo().getRank() - move.getFrom().getRank() == 0) {
                         sFile = (move.getTo().getFile() - move.getFrom().getFile()) > 0 ? 1 : -1;
@@ -201,6 +212,8 @@ public class Logic {
                             if (board.getPiece(new Position(file, move.getTo().getRank())) != null)
                                 return MoveType.ILLEGAL;
                         }
+                        if (board.getPiece(move.getTo()) != null)
+                            return MoveType.CAPTURE;
                         return MoveType.NORMAL;
                     }
                     deltaFile = move.getTo().getFile() - move.getFrom().getFile();
@@ -216,14 +229,19 @@ public class Logic {
                             file += sFile;
                             rank += sRank;
                         }
+                        if (board.getPiece(move.getTo()) != null)
+                            return MoveType.CAPTURE;
                         return MoveType.NORMAL;
                     }
                     return MoveType.ILLEGAL;
                 case KING:
                     //normal
-                    if (Math.abs(move.getTo().getFile() - move.getFrom().getFile()) <= 1 && Math.abs(move.getTo().getRank() - move.getFrom().getRank()) <= 1)
+                    if (Math.abs(move.getTo().getFile() - move.getFrom().getFile()) <= 1 && Math.abs(move.getTo().getRank() - move.getFrom().getRank()) <= 1) {
+                        if (board.getPiece(move.getTo()) != null)
+                            return MoveType.CAPTURE_WITH_KING;
                         return MoveType.KING;
-                        //castling
+                    }
+                    //castling
                     else {
                         int rank = turn == PlayerEnum.WHITE ? ModelConstants.BOARD_SIZE - 1 : 0;
                         //long
@@ -257,7 +275,7 @@ public class Logic {
 
     public MoveType getMoveType(Move move, Board board, PlayerEnum turn) {
         MoveType pseudoMoveType = getPseudoMoveType(move, board, turn);
-        if (pseudoMoveType != MoveType.ILLEGAL && !isInCheckAfterMove(move, pseudoMoveType, turn, null, turn)
+        if (pseudoMoveType != MoveType.ILLEGAL && !isInCheckAfterMove(move, pseudoMoveType, turn)
                 && (pseudoMoveType != MoveType.SHORT_CASTLING ||
                 (!isInCheck(new Position(ModelConstants.BOARD_SIZE - 3, turn == PlayerEnum.WHITE ? ModelConstants.BOARD_SIZE - 1 : 0), board, turn == PlayerEnum.WHITE ? PlayerEnum.BLACK : PlayerEnum.WHITE) && !isInCheck(new Position(ModelConstants.BOARD_SIZE - 4, turn == PlayerEnum.WHITE ? ModelConstants.BOARD_SIZE - 1 : 0), board, turn == PlayerEnum.WHITE ? PlayerEnum.BLACK : PlayerEnum.WHITE)))
                 && (pseudoMoveType != MoveType.LONG_CASTLING ||
@@ -266,7 +284,7 @@ public class Logic {
         return MoveType.ILLEGAL;
     }
 
-    public void move(Move move, PieceType promoteTo) {
+    public MoveType move(Move move, PieceType promoteTo) {
         MoveType moveType = getMoveType(move, board, turn);
         if (moveType != MoveType.ILLEGAL) {
             String moveNotation = getMoveNotation(move, moveType, promoteTo);
@@ -275,12 +293,12 @@ public class Logic {
             else
                 halfmoveClock = 0;
             switch (moveType) {
-                case NORMAL -> {
+                case NORMAL, CAPTURE -> {
                     board.getPiece(move.getFrom()).setHasMoved(true);
                     board.movePiece(move);
                     possibleEnPassantPos = null;
                 }
-                case KING -> {
+                case KING, CAPTURE_WITH_KING -> {
                     board.getPiece(move.getFrom()).setHasMoved(true);
                     board.movePiece(move);
                     if (turn == PlayerEnum.WHITE)
@@ -333,9 +351,10 @@ public class Logic {
             gamePositions.add(getModifiedFEN());
             updateGameState();
         }
+        return moveType;
     }
 
-    public void moveForEngine() {
+    public MoveType moveForEngine() {
         engineConnector.sendCommand("position fen " + getFEN());
         engineConnector.sendCommand("go depth " + ModelConstants.MAXIMUM_ENGINE_DEPTH);
         String bestMove = null;
@@ -353,7 +372,7 @@ public class Logic {
             case "b" -> enginePromoteTo = PieceType.BISHOP;
             default -> enginePromoteTo = null;
         }
-        move(engineMove, enginePromoteTo);
+        return move(engineMove, enginePromoteTo);
     }
 
     public String getMoveNotation(Move move, MoveType moveType, PieceType promoteTo) {
@@ -420,14 +439,14 @@ public class Logic {
         return false;
     }
 
-    private boolean isInCheckAfterMove(Move move, MoveType moveType, PlayerEnum turn, PieceType promoteTo, PlayerEnum promoteToColor) {
+    private boolean isInCheckAfterMove(Move move, MoveType moveType, PlayerEnum turn) {
         Board tempBoard = new Board(board);
         Position tempWhiteKingPos = new Position(whiteKingPos);
         Position tempBlackKingPos = new Position(blackKingPos);
         PlayerEnum tempTurn = turn == PlayerEnum.WHITE ? PlayerEnum.WHITE : PlayerEnum.BLACK;
         switch (moveType) {
-            case NORMAL, PAWN_DOUBLE -> tempBoard.movePiece(move);
-            case KING -> {
+            case NORMAL, CAPTURE, PAWN_DOUBLE, PROMOTION -> tempBoard.movePiece(move);
+            case KING, CAPTURE_WITH_KING -> {
                 tempBoard.movePiece(move);
                 if (tempTurn == PlayerEnum.WHITE)
                     tempWhiteKingPos = move.getTo();
@@ -453,10 +472,6 @@ public class Logic {
                     tempWhiteKingPos = move.getTo();
                 else
                     tempBlackKingPos = move.getTo();
-            }
-            case PROMOTION -> {
-                tempBoard.setPiece(move.getFrom(), null);
-                tempBoard.setPiece(move.getTo(), new Piece(promoteTo, promoteToColor));
             }
         }
         tempTurn = tempTurn == PlayerEnum.WHITE ? PlayerEnum.BLACK : PlayerEnum.WHITE;

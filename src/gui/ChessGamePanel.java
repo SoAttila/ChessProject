@@ -66,6 +66,7 @@ public class ChessGamePanel extends JPanel {
             promotionPanel.getPromotionLabel(i).addMouseListener(new ChessPromotionMouseListener());
         }
         setPreferredSize(new Dimension(GuiConstants.FRAME_LENGTH, GuiConstants.FRAME_LENGTH));
+        playSound(SoundEnum.START);
     }
 
     @Override
@@ -112,6 +113,7 @@ public class ChessGamePanel extends JPanel {
         listModel.removeAllElements();
         revalidate();
         repaint();
+        playSound(SoundEnum.START);
     }
 
     public void reset(int skillLevel) {
@@ -133,6 +135,7 @@ public class ChessGamePanel extends JPanel {
         listModel.removeAllElements();
         revalidate();
         repaint();
+        playSound(SoundEnum.START);
     }
 
     public void loadFEN(String fen) {
@@ -155,6 +158,7 @@ public class ChessGamePanel extends JPanel {
             listModel.removeAllElements();
             revalidate();
             repaint();
+            playSound(SoundEnum.START);
         } catch (InvalidFenException ife) {
             //TBD
         }
@@ -239,7 +243,6 @@ public class ChessGamePanel extends JPanel {
                 int destinationRank = ((int) destinationPoint.getY()) / GuiConstants.SQUARE_SIZE;
                 if (-1 < destinationFile && destinationRank < ModelConstants.BOARD_SIZE) {
                     ChessSquare destinationSquare = squares[destinationRank][destinationFile];
-                    boolean isCapture = logic.getBoard().getPiece(new Position(destinationFile, destinationRank)) != null;
                     MoveType moveType = logic.getMoveType(new Move(new Position(adjustCoordinate(draggedSquare.getFile()), adjustCoordinate(draggedSquare.getRank())), new Position(adjustCoordinate(destinationSquare.getFile()), adjustCoordinate(destinationSquare.getRank()))), logic.getBoard(), logic.getTurn());
                     if (moveType == MoveType.PROMOTION) {
                         promotionPanel.setColor(logic.getTurn());
@@ -257,31 +260,39 @@ public class ChessGamePanel extends JPanel {
                         logic.move(new Move(new Position(adjustCoordinate(draggedSquare.getFile()), adjustCoordinate(draggedSquare.getRank())), new Position(adjustCoordinate(destinationSquare.getFile()), adjustCoordinate(destinationSquare.getRank()))), selectedPromotion);
                         selectedPromotion = null;
                         if (logic.isInCheck())
-                            playSound(SoundEnum.CHECK);
-                        else
-                            playSound(SoundEnum.PROMOTE);
+                            if (logic.getGameState() == GameState.IN_PROGRESS)
+                                playSound(SoundEnum.CHECK);
+                            else
+                                playSound(SoundEnum.PROMOTE);
                     } else {
                         logic.move(new Move(new Position(adjustCoordinate(draggedSquare.getFile()), adjustCoordinate(draggedSquare.getRank())), new Position(adjustCoordinate(destinationSquare.getFile()), adjustCoordinate(destinationSquare.getRank()))), null);
-                        if (logic.isInCheck())
-                            playSound(SoundEnum.CHECK);
-                        else {
+                        if (moveType == MoveType.ILLEGAL)
+                            playSound(SoundEnum.ILLEGAL);
+                        else if (logic.isInCheck()) {
+                            if (logic.getGameState() == GameState.IN_PROGRESS)
+                                playSound(SoundEnum.CHECK);
+                        } else {
                             switch (moveType) {
-                                case ILLEGAL -> playSound(SoundEnum.ILLEGAL);
                                 case SHORT_CASTLING, LONG_CASTLING -> playSound(SoundEnum.CASTLE);
-                                case EN_PASSANT -> playSound(SoundEnum.CAPTURE);
-                                default -> {
-                                    if (isCapture)
-                                        playSound(SoundEnum.CAPTURE);
-                                    else
-                                        playSound(SoundEnum.MOVE);
-                                }
+                                case CAPTURE, CAPTURE_WITH_KING, EN_PASSANT -> playSound(SoundEnum.CAPTURE);
+                                default -> playSound(SoundEnum.MOVE);
                             }
                         }
                     }
                     if (moveType != MoveType.ILLEGAL) {
                         updateList();
-                        if (moveType != MoveType.ILLEGAL && logic.getGameState() == GameState.IN_PROGRESS && logic.getGameMode() == GameMode.ENGINE) {
-                            logic.moveForEngine();
+                        if (logic.getGameState() == GameState.IN_PROGRESS && logic.getGameMode() == GameMode.ENGINE) {
+                            MoveType engineMoveType = logic.moveForEngine();
+                            if (logic.isInCheck()) {
+                                if (logic.getGameState() == GameState.IN_PROGRESS)
+                                    playSound(SoundEnum.CHECK);
+                            } else
+                                switch (engineMoveType) {
+                                    case PROMOTION -> playSound(SoundEnum.PROMOTE);
+                                    case SHORT_CASTLING, LONG_CASTLING -> playSound(SoundEnum.CASTLE);
+                                    case CAPTURE, CAPTURE_WITH_KING, EN_PASSANT -> playSound(SoundEnum.CAPTURE);
+                                    default -> playSound(SoundEnum.MOVE);
+                                }
                             updateList();
                         }
                     }
@@ -293,6 +304,7 @@ public class ChessGamePanel extends JPanel {
                                 square.removeMouseMotionListener(chessMouseMotionListener);
                             }
                         }
+                        playSound(SoundEnum.END);
                         JOptionPane.showMessageDialog(null, logic.getGameState(), "Result", JOptionPane.INFORMATION_MESSAGE, null);
                     }
                 }
